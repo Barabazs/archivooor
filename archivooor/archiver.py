@@ -1,5 +1,7 @@
 import concurrent.futures
+import re
 import time
+import xml.etree.ElementTree as ET
 
 import requests
 from requests.adapters import HTTPAdapter
@@ -192,3 +194,77 @@ class Archiver:
                 return response.text
         else:
             return response.status_code, response.text
+
+
+class Sitemap:
+    def __init__(self, sitemap_URL):
+        self.location = sitemap_URL
+        self.LOCAL_PREFIX = "file://"
+        self.local_sitemap = self._sitemap_is_local()
+        self.content = self._load_sitemap()
+        self.encoded_content = ET.fromstring(self.content)
+        self.namespace = self._get_namespace()
+        self.type = self._get_sitemap_type()
+
+    def _sitemap_is_local(self):
+        """
+        Returns True if we believe a URI to be local, False otherwise.
+        """
+        return self.location.startswith(self.LOCAL_PREFIX) or self.location.startswith(
+            "/"
+        )
+
+    def _load_sitemap(self):
+        """Loads a sitemap from a local file or download it from the internet."""
+        if self.local_sitemap:
+            sitemap_filepath = sitemap_filepath[len(self.LOCAL_PREFIX) :]
+
+            # Try to open the file, error on failure
+            try:
+                with open(sitemap_filepath, "r") as fp:
+                    contents = fp.read()
+            except IOError as e:
+                print(e)
+                raise
+            return contents
+
+        else:
+            response = requests.get(self.location)
+            try:
+                # Raise `requests.exceptions.HTTPError` if 4XX or 5XX status
+                response.raise_for_status()
+            except requests.exceptions.HTTPError as e:
+                print(e)
+                raise
+            else:
+                return response.text.encode("utf-8")
+
+    def _get_sitemap_type(self):
+        if "sitemapindex" in self.encoded_content.tag:
+            return "sitemapindex"
+        elif "urlset" in self.encoded_content.tag:
+            return "urlset"
+        else:
+            return None
+
+    def _get_namespace(self):
+        """Extract the namespace using a regular expression."""
+        match = re.match(r"{.*}", self.encoded_content.tag)
+        return match.group(0) if match else ""
+
+    def extract_pages_from_sitemap(self):
+        """
+        Extract the various pages from the sitemap text.
+        """
+        if self.type == "urlset":
+            urls = []
+            for loc_node in self.encoded_content.findall(f".//{self.namespace}loc"):
+                urls.append(loc_node.text)
+
+            return list(set(urls))
+        elif self.type == "sitemapindex":
+            raise NotImplementedError(
+                "sitemapindex not implemented yet.\nPlease retry with a urlset sitemap."
+            )
+        else:
+            raise ValueError(f"Unknown sitemap type: {self.type}")
