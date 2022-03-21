@@ -15,10 +15,13 @@ Archivooor is available on PyPI:
 
 ```python
 from archivooor.archiver import Archiver
+from archivooor.archiver import Sitemap
 
 archive = Archiver(s3_access_key="your_s3_access_key", s3_secret_key="your_s3_secret_key")
 archive.save_pages(["https://example.com/","https://example.com/page1","https://example.com/page2"])
 
+sitemap = Sitemap("https://www.sitemaps.org/sitemap.xml")
+print(sitemap.extract_pages_from_sitemap())
 ```
 ## License
 [MIT](https://github.com/Barabazs/archivooor/blob/main/LICENSE)
