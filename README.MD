@@ -25,3 +25,13 @@ archive.save_pages(["https://example.com/","https://example.com/page1","https://
 
 ## Acknowledgements
 [@agude](https://github.com/agude) for writing the original [python script](https://github.com/agude/wayback-machine-archiver) this project is based on.
+
+
+## Donations
+
+[![ko-fi](https://www.ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/T6T51XKUJ)
+
+|Ethereum|Bitcoin|
+|:-:	|:-:	|
+|0x6b78d3deea258914C2f4e44054d22094107407e5|bc1qvvh8s3tt97cwy20mfdttpwqw0vgsrrceq8zkmw|
+|![eth](https://raw.githubusercontent.com/Barabazs/Barabazs/master/.github/eth.png)|![btc](https://raw.githubusercontent.com/Barabazs/Barabazs/master/.github/btc.png)|
