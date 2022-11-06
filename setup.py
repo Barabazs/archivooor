@@ -12,7 +12,7 @@ with open("README.MD") as f:
 
 setup(
     name="archivooor",
-    version="0.0.2",
+    version="0.0.3",
     description="A Python package to submit web pages to the Wayback Machine for archiving.",
     long_description=long_description,
     long_description_content_type="text/markdown",
