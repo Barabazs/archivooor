@@ -1,5 +1,12 @@
-from setuptools import setup
+from setuptools import find_packages, setup
 
+extras_require = {
+    "dev": [
+        "pre-commit",
+        "black",
+    ],
+    "test": [],
+}
 with open("README.MD") as f:
     long_description = f.read()
 
@@ -12,11 +19,13 @@ setup(
     author="Barabazs",
     url="https://github.com/Barabazs/archivooor",
     license="MIT",
-    packages=["archivooor"],
+    packages=find_packages(exclude=["tests", "tests.*"]),
     install_requires=[
-        "requests>=2.27.1",
-        "urllib3>=1.26.9",
+        "requests>=2.28.1",
+        "urllib3>=1.26.12",
+        "python-dotenv==0.21.0",
     ],
+    extras_require=extras_require,
     classifiers=[
         "Development Status :: 3 - Alpha",
         "License :: OSI Approved :: MIT License",
