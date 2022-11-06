@@ -181,7 +181,7 @@ class Archiver:
 
     def get_user_status_request(self):
         """
-        Get the current number of active and available session of the user account:
+        Get the current number of active and available session of the user account.
         """
         url = f"https://web.archive.org/save/status/user?_t={int(time.time())}"
         response = self.session.get(url=url)
