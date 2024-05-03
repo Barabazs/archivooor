@@ -23,7 +23,9 @@ jobs:
           poetry install
 
       - name: Poetry publish
-        run: poetry publish --build
+        run: |
+          poetry config pypi-token.pypi "${{ secrets.PYPI_API_TOKEN }}"
+          poetry publish --build
 
       - name: Release to Github
         uses: softprops/action-gh-release@v1
