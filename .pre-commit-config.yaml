@@ -13,3 +13,14 @@ repos:
     rev: 22.3.0
     hooks:
       - id: black
+  - repo: local
+    hooks:
+      - id: poetry-check
+        name: Poetry check
+        description:
+          Validates the content of the pyproject.toml file and its consistency
+          with the poetry.lock file.
+        entry: poetry check
+        language: system
+        pass_filenames: false
+        files: pyproject.toml
