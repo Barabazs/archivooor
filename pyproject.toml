@@ -10,7 +10,7 @@ repository = "https://github.com/Barabazs/archivooor"
 [tool.poetry.dependencies]
 python = "^3.8,<4.0"
 requests = "^2.28.1"
-urllib3 = "^1.26.12"
+urllib3 = "^1.26.18"
 python-dotenv = "0.21.0"
 
 [tool.poetry.group.dev.dependencies]
