@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "archivooor"
-version = "0.0.4"
+version = "0.0.5"
 description = "A Python package to submit web pages to the Wayback Machine for archiving."
 authors = ["Barabazs <31799121+Barabazs@users.noreply.github.com>"]
 license = "MIT"
@@ -12,7 +12,7 @@ archivooor = 'archivooor.__main__:main'
 
 [tool.poetry.dependencies]
 python = "^3.8,<4.0"
-requests = "^2.28.1"
+requests = "^2.32.0"
 urllib3 = "^1.26.18"
 python-dotenv = "0.21.0"
 
