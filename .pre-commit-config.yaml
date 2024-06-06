@@ -1,4 +1,3 @@
-files: \.py$
 default_stages: [commit]
 fail_fast: true
 
@@ -13,12 +12,14 @@ repos:
     rev: 24.4.0
     hooks:
       - id: black
+        files: \.py$
   - repo: https://github.com/PyCQA/isort
     rev: 5.13.0
     hooks:
       # Use isort for sorting imports.
       - id: isort
         additional_dependencies: ["toml"]
+        files: \.py$
   - repo: local
     hooks:
       - id: poetry-check
