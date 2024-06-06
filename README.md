@@ -1,7 +1,7 @@
 # Archivooor
 
 Archivooor is a Python package for interacting with the archive.org API.
-  
+
 It's main purpose is to provide a convenient way to submit webpages to the Wayback Machine.
 Archivooor uses multithreading and automatic retries to ensure that webpages are archived successfully.
 
