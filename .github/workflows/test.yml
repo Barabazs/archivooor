@@ -36,9 +36,7 @@ jobs:
           security create-keychain -p "" build.keychain
           security default-keychain -s build.keychain
           security unlock-keychain -p "" build.keychain
-          security set-keychain-settings -t 3600 -u build.keychain
-          security import ./certs/apple.cer -k ~/Library/Keychains/build.keychain -T /usr/bin/codesign
-          
+
       - name: Run tests
         run: |
           poetry run archivooor
