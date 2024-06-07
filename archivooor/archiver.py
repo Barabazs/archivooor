@@ -7,6 +7,8 @@ import requests
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 
+from archivooor import exceptions
+
 
 class NetworkHandler:
     """
@@ -185,15 +187,28 @@ class Archiver:
         """
         url = f"https://web.archive.org/save/status/user?_t={int(time.time())}"
         response = self.session.get(url=url)
+
         if response.status_code == 200:
             try:
                 return response.json()
-            except:
+            except Exception as exc:
                 if "Too Many Requests" in response.text:
-                    return 429, "Too Many Requests"
-                return response.text
+                    raise exceptions.ArchivooorException(
+                        "Too Many Requests - Please try again later."
+                    ) from exc
+                raise exc
+        elif response.status_code == 429:
+            raise exceptions.ArchivooorException(
+                "Too Many Requests - Please try again later."
+            )
+        elif response.status_code == 401:
+            raise exceptions.ArchivooorException(
+                "Unauthorized - Please check if the keys are correct."
+            )
         else:
-            return response.status_code, response.text
+            raise exceptions.ArchivooorException(
+                f"Unexpected error: {response.status_code} - {response.text}"
+            )
 
 
 class Sitemap:
