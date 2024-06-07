@@ -14,7 +14,7 @@ archivooor = 'archivooor.__main__:main'
 python = "^3.8,<4.0"
 requests = "^2.32.1"
 urllib3 = "^1.26.18"
-python-dotenv = "0.21.0"
+keyring = "^25.2.1"
 click = "^8.1.7"
 
 [tool.poetry.group.dev.dependencies]
