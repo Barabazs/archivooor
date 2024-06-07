@@ -13,7 +13,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-latest] #, macos-latest, windows-latest]
+        os: [ubuntu-latest, macos-latest] #, windows-latest]
         python-version: ["3.8"] #, "3.9", "3.10", "3.11", "3.12"]
     steps:
       - uses: actions/checkout@v4
@@ -30,6 +30,15 @@ jobs:
       - name: Ubuntu keyring setup
         if: ${{ matrix.os == 'ubuntu-latest' }}
         uses: t1m0thyj/unlock-keyring@v1
+      - name: MacOS keychain setup
+        if: ${{ matrix.os == 'macos-latest' }}
+        run: |
+          security create-keychain -p "" build.keychain
+          security default-keychain -s build.keychain
+          security unlock-keychain -p "" build.keychain
+          security set-keychain-settings -t 3600 -u build.keychain
+          security import ./certs/apple.cer -k ~/Library/Keychains/build.keychain -T /usr/bin/codesign
+          
       - name: Run tests
         run: |
           poetry run archivooor
