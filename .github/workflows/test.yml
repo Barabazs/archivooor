@@ -30,3 +30,5 @@ jobs:
       - name: Run tests
         run: |
           poetry run archivooor
+          poetry run archivooor keys set test_value test_secret
+          poetry run archivooor keys delete
