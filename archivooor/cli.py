@@ -79,10 +79,8 @@ def job(job_id, verbose):
     else:
         click.echo(f"status: {job_response.get('status')}")
         click.echo(f"original_url: {job_response.get('original_url')}")
-        click.echo(
-            f"outlinks_saved: {len(job_response.get('outlinks')) if \
-                job_response.get('outlinks') else 0}"
-        )
+        outlinks = job_response.get("outlinks")
+        click.echo(f"outlinks_saved: {len(outlinks) if outlinks else 0}")
 
 
 @cli.command(name="stats")
