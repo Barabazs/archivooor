@@ -19,11 +19,13 @@ def cli(ctx):
     Submit webpages to the Wayback Machine and check the save job status.
     """
     credentials = key_utils.get_credentials()
-
-    archive = archiver.Archiver(
-        s3_access_key=credentials[0],
-        s3_secret_key=credentials[1],
-    )
+    if credentials is not None:
+        archive = archiver.Archiver(
+            s3_access_key=credentials[0],
+            s3_secret_key=credentials[1],
+        )
+    else:
+        archive = archiver.Archiver(s3_access_key=None, s3_secret_key=None)
     ctx.obj = archive
 
 
@@ -79,10 +81,8 @@ def job(job_id, verbose):
     else:
         click.echo(f"status: {job_response.get('status')}")
         click.echo(f"original_url: {job_response.get('original_url')}")
-        click.echo(
-            f"outlinks_saved: {len(job_response.get('outlinks')) if \
-                job_response.get('outlinks') else 0}"
-        )
+        outlinks = job_response.get("outlinks")
+        click.echo(f"outlinks_saved: {len(outlinks) if outlinks else 0}")
 
 
 @cli.command(name="stats")
