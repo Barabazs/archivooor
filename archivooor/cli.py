@@ -19,11 +19,13 @@ def cli(ctx):
     Submit webpages to the Wayback Machine and check the save job status.
     """
     credentials = key_utils.get_credentials()
-
-    archive = archiver.Archiver(
-        s3_access_key=credentials[0],
-        s3_secret_key=credentials[1],
-    )
+    if credentials is not None:
+        archive = archiver.Archiver(
+            s3_access_key=credentials[0],
+            s3_secret_key=credentials[1],
+        )
+    else:
+        archive = archiver.Archiver(s3_access_key=None, s3_secret_key=None)
     ctx.obj = archive
 
 
