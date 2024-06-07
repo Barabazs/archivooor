@@ -106,13 +106,13 @@ def keys():
 @click.argument("secret_key", nargs=1)
 def set_keys(access_key, secret_key):
     """Set your archive.org API keys."""
-    keys.set_credentials(s3_access_key=access_key, s3_secret_key=secret_key)
+    key_utils.set_credentials(s3_access_key=access_key, s3_secret_key=secret_key)
 
 
 @keys.command(name="delete")
 def delete_keys():
     """Delete your archive.org API keys."""
-    keys.delete_credentials()
+    key_utils.delete_credentials()
 
 
 if __name__ == "__main__":
