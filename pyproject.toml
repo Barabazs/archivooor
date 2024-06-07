@@ -8,7 +8,7 @@ readme = "README.md"
 repository = "https://github.com/Barabazs/archivooor"
 
 [tool.poetry.scripts]
-archivooor = 'archivooor.__main__:main'
+archivooor = "archivooor.cli:cli"
 
 [tool.poetry.dependencies]
 python = "^3.8,<4.0"
