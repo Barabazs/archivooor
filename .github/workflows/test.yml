@@ -27,6 +27,9 @@ jobs:
         run: |
           python -m pip install poetry
           poetry install
+      - name: Ubuntu keyring setup
+        if: ${{ matrix.os == 'ubuntu-latest' }}
+        uses: t1m0thyj/unlock-keyring@v1
       - name: Run tests
         run: |
           poetry run archivooor
