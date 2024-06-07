@@ -1,9 +1,8 @@
 """Command line interface for the archivooor package."""
 
 import click
-from dotenv import dotenv_values
 
-from archivooor.archiver import Archiver
+from archivooor import archiver, key_utils
 
 
 @click.group(
@@ -19,9 +18,12 @@ def cli(ctx):
 
     Submit webpages to the Wayback Machine and check the save job status.
     """
-    settings = dotenv_values(".env")
+    credentials = key_utils.get_credentials()
 
-    archive = Archiver(settings.get("s3_access_key"), settings.get("s3_secret_key"))
+    archive = archiver.Archiver(
+        s3_access_key=credentials[0],
+        s3_secret_key=credentials[1],
+    )
     ctx.obj = archive
 
 
@@ -92,6 +94,25 @@ def stats():
     user_stats = click.get_current_context().obj.get_user_status_request()
     for key, value in user_stats.items():
         click.echo(f"{key}: {value}")
+
+
+@cli.group(name="keys")
+def keys():
+    """Manage archive.org API keys."""
+
+
+@keys.command(name="set")
+@click.argument("access_key", nargs=1)
+@click.argument("secret_key", nargs=1)
+def set_keys(access_key, secret_key):
+    """Set your archive.org API keys."""
+    keys.set_credentials(s3_access_key=access_key, s3_secret_key=secret_key)
+
+
+@keys.command(name="delete")
+def delete_keys():
+    """Delete your archive.org API keys."""
+    keys.delete_credentials()
 
 
 if __name__ == "__main__":
