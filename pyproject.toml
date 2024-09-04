@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "archivooor"
-version = "0.0.6"
+version = "0.0.7"
 description = "A Python package to submit web pages to the Wayback Machine for archiving."
 authors = ["Barabazs <31799121+Barabazs@users.noreply.github.com>"]
 license = "MIT"
