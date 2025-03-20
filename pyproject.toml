@@ -1,6 +1,6 @@
 [project]
 name = "archivooor"
-version = "0.0.7"
+version = "0.0.8"
 description = "A Python package to submit web pages to the Wayback Machine for archiving."
 authors = [
     { name = "Barabazs", email = "31799121+Barabazs@users.noreply.github.com" },

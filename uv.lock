@@ -3,7 +3,7 @@ requires-python = ">=3.9, <4.0"
 
 [[package]]
 name = "archivooor"
-version = "0.0.7"
+version = "0.0.8"
 source = { editable = "." }
 dependencies = [
     { name = "click" },
