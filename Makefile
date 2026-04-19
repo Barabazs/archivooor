@@ -1,9 +1,13 @@
 help:
 	@echo "lint - lint code"
 	@echo "install-dev - install all dependencies for development"
+	@echo "test - run tests"
 
 install-dev:
 	uv sync --all-extras --dev
+
+test:
+	uv run pytest
 
 lint:
 	@ERROR=0; \

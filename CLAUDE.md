@@ -50,6 +50,4 @@ Bump version in `pyproject.toml`, then push a tag matching `v[0-9]+.[0-9]+.[0-9]
 ## Gotchas
 
 - **no-commit-to-branch**: prek hook blocks direct commits to `main`. Work on feature branches.
-- **`save_pages` recursive retry**: On failure, retries the failed subset recursively with no depth limit — can loop indefinitely if a URL always fails.
-- **`Sitemap._load_sitemap` bug**: Local file path uses undefined `sitemap_filepath` variable (line ~235 in `archiver.py`). Local sitemaps are broken.
-- **`get_save_status` infinite retry**: Retries recursively on `"error"` status with no backoff or limit.
+- **`save_pages` recursive retry**: On failure, retries the failed subset recursively up to `MAX_RETRIES` (3) with exponential backoff. After max retries, returns error dicts for remaining URLs.
