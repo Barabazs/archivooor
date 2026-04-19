@@ -1,4 +1,5 @@
 import concurrent.futures
+import logging
 import re
 import time
 import xml.etree.ElementTree as ET
@@ -8,6 +9,10 @@ from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 
 from archivooor import exceptions
+
+logger = logging.getLogger(__name__)
+MAX_RETRIES = 3
+MAX_STATUS_RETRIES = 5
 
 
 class NetworkHandler:
@@ -68,6 +73,7 @@ class Archiver:
         skip_first_archive=True,
         outlinks_availability=False,
         email_result=False,
+        _retries: int = 0,
     ):
         """
         Save a list of webpages to the archive.org API using multithreading and automatic retries
@@ -75,28 +81,41 @@ class Archiver:
 
         results = []
         failures = []
-        with self.executor as executor:
-            future_to_url = {
-                executor.submit(
-                    self.save_page,
-                    url,
-                    capture_all=capture_all,
-                    capture_outlinks=capture_outlinks,
-                    capture_screenshot=capture_screenshot,
-                    force_get=force_get,
-                    skip_first_archive=skip_first_archive,
-                    outlinks_availability=outlinks_availability,
-                    email_result=email_result,
-                ): url
-                for url in pages
-            }
-            for future in concurrent.futures.as_completed(future_to_url):
-                url = future_to_url[future]
-                try:
-                    results.append(future.result())
-                except Exception as exc:
-                    failures.append(url)
-            if failures:
+        future_to_url = {
+            self.executor.submit(
+                self.save_page,
+                url,
+                capture_all=capture_all,
+                capture_outlinks=capture_outlinks,
+                capture_screenshot=capture_screenshot,
+                force_get=force_get,
+                skip_first_archive=skip_first_archive,
+                outlinks_availability=outlinks_availability,
+                email_result=email_result,
+            ): url
+            for url in pages
+        }
+        for future in concurrent.futures.as_completed(future_to_url):
+            url = future_to_url[future]
+            try:
+                results.append(future.result())
+            except Exception as exc:
+                failures.append(url)
+        if failures:
+            if _retries >= MAX_RETRIES:
+                logger.warning(
+                    "Max retries (%d) reached for %d URLs", MAX_RETRIES, len(failures)
+                )
+                for url in failures:
+                    results.append(
+                        {
+                            "url": url,
+                            "status": "failed",
+                            "message": "max retries exceeded",
+                        }
+                    )
+            else:
+                time.sleep(min(2**_retries, 30))
                 results.extend(
                     self.save_pages(
                         failures,
@@ -107,9 +126,10 @@ class Archiver:
                         skip_first_archive=skip_first_archive,
                         outlinks_availability=outlinks_availability,
                         email_result=email_result,
+                        _retries=_retries + 1,
                     )
                 )
-            return results
+        return results
 
     def save_page(
         self,
@@ -164,7 +184,7 @@ class Archiver:
             }
             return formatted_response
 
-    def get_save_status(self, job_id: str):
+    def get_save_status(self, job_id: str, _retries: int = 0):
         """
         Given a job_id, get the save status of the job.
         :param job_id: job_id
@@ -175,7 +195,15 @@ class Archiver:
         if response.status_code == 200:
             data = response.json()
             if data.get("status") == "error":
-                return self.get_save_status(job_id=job_id)
+                if _retries >= MAX_STATUS_RETRIES:
+                    logger.warning(
+                        "Max status retries (%d) reached for job %s",
+                        MAX_STATUS_RETRIES,
+                        job_id,
+                    )
+                    return data
+                time.sleep(min(2**_retries, 30))
+                return self.get_save_status(job_id=job_id, _retries=_retries + 1)
             else:
                 return data
         else:
@@ -232,7 +260,10 @@ class Sitemap:
     def _load_sitemap(self):
         """Loads a sitemap from a local file or download it from the internet."""
         if self.local_sitemap:
-            sitemap_filepath = sitemap_filepath[len(self.LOCAL_PREFIX) :]
+            if self.location.startswith(self.LOCAL_PREFIX):
+                sitemap_filepath = self.location[len(self.LOCAL_PREFIX) :]
+            else:
+                sitemap_filepath = self.location
 
             # Try to open the file, error on failure
             try:

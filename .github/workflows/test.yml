@@ -39,6 +39,7 @@ jobs:
 
       - name: Run tests
         run: |
+          uv run pytest
           uv run archivooor
           uv run archivooor keys set test_value test_secret
           uv run archivooor keys delete
