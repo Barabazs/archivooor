@@ -2,7 +2,7 @@
 
 import click
 
-from archivooor import archiver, key_utils
+from archivooor import archiver, exceptions, key_utils
 
 
 @click.group(
@@ -46,15 +46,18 @@ def save(urls, verbose):
         click.echo(save.get_help(click.Context(save)))
         return
 
-    responses = click.get_current_context().obj.save_pages(
-        pages=list(urls),
-        capture_all=True,
-        capture_outlinks=True,
-        force_get=True,
-        capture_screenshot=True,
-        skip_first_archive=True,
-        outlinks_availability=True,
-    )
+    try:
+        responses = click.get_current_context().obj.save_pages(
+            pages=list(urls),
+            capture_all=True,
+            capture_outlinks=True,
+            force_get=True,
+            capture_screenshot=True,
+            skip_first_archive=True,
+            outlinks_availability=True,
+        )
+    except exceptions.ArchivooorException as e:
+        raise click.ClickException(str(e))
     if verbose:
         for response in responses:
             for key, value in response.items():

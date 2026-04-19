@@ -99,6 +99,8 @@ class Archiver:
             url = future_to_url[future]
             try:
                 results.append(future.result())
+            except exceptions.ArchivooorException:
+                raise
             except Exception as exc:
                 failures.append(url)
         if failures:
@@ -176,9 +178,15 @@ class Archiver:
             }
             return formatted_response
 
+        elif response.status_code == 401:
+            raise exceptions.ArchivooorException(
+                "Unauthorized - Please check if the keys are correct."
+            )
         else:
             formatted_response = {
                 "url": url,
+                "status": "error",
+                "message": f"HTTP {response.status_code}",
                 "status_code": response.status_code,
                 "full_response": response.text,
             }
