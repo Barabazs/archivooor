@@ -45,11 +45,11 @@ Bump version in `pyproject.toml`, then push a tag matching `v[0-9]+.[0-9]+.[0-9]
 - **Package manager**: uv (hatchling build backend)
 - **Linter/formatter**: ruff (isort rules enabled)
 - **Type checker**: mypy
-- **Pre-commit hooks**: trailing-whitespace, end-of-file-fixer, no-commit-to-branch, ruff, ruff-format, uv-lock
+- **Git hooks**: prek (trailing-whitespace, end-of-file-fixer, no-commit-to-branch, ruff, ruff-format, uv-lock)
 
 ## Gotchas
 
-- **no-commit-to-branch**: Pre-commit hook blocks direct commits to `main`. Work on feature branches.
+- **no-commit-to-branch**: prek hook blocks direct commits to `main`. Work on feature branches.
 - **`save_pages` recursive retry**: On failure, retries the failed subset recursively with no depth limit — can loop indefinitely if a URL always fails.
 - **`Sitemap._load_sitemap` bug**: Local file path uses undefined `sitemap_filepath` variable (line ~235 in `archiver.py`). Local sitemaps are broken.
 - **`get_save_status` infinite retry**: Retries recursively on `"error"` status with no backoff or limit.

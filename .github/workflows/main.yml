@@ -20,5 +20,5 @@ jobs:
         with:
           python-version-file: ".python-version"
 
-      - name: Pre Commit
-        uses: pre-commit/action@v3.0.1
+      - name: Prek
+        uses: j178/prek-action@v2
