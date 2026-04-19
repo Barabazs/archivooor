@@ -77,7 +77,10 @@ def job(job_id, verbose):
 
     JOB_ID is the unique identifier of the job returned by the save command.
     """
-    job_response = click.get_current_context().obj.get_save_status(job_id=job_id)
+    try:
+        job_response = click.get_current_context().obj.get_save_status(job_id=job_id)
+    except exceptions.ArchivooorException as e:
+        raise click.ClickException(str(e))
     if verbose:
         for key, value in job_response.items():
             click.echo(f"{key}: {value}")
@@ -94,7 +97,10 @@ def stats():
 
     The stats include the number of active and available sessions.
     """
-    user_stats = click.get_current_context().obj.get_user_status_request()
+    try:
+        user_stats = click.get_current_context().obj.get_user_status_request()
+    except exceptions.ArchivooorException as e:
+        raise click.ClickException(str(e))
     for key, value in user_stats.items():
         click.echo(f"{key}: {value}")
 
