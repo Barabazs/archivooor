@@ -1,5 +1,7 @@
 """Command line interface for the archivooor package."""
 
+import json
+
 import click
 
 from archivooor import archiver, exceptions, key_utils
@@ -12,8 +14,11 @@ from archivooor import archiver, exceptions, key_utils
     }
 )
 @click.version_option()
+@click.option(
+    "--no-history", is_flag=True, default=False, help="Disable history tracking"
+)
 @click.pass_context
-def cli(ctx):
+def cli(ctx, no_history):
     """Easily interact with the archive.org API.
 
     Submit webpages to the Wayback Machine and check the save job status.
@@ -23,9 +28,14 @@ def cli(ctx):
         archive = archiver.Archiver(
             s3_access_key=credentials[0],
             s3_secret_key=credentials[1],
+            track_history=not no_history,
         )
     else:
-        archive = archiver.Archiver(s3_access_key=None, s3_secret_key=None)
+        archive = archiver.Archiver(
+            s3_access_key=None,
+            s3_secret_key=None,
+            track_history=not no_history,
+        )
     ctx.obj = archive
 
 
@@ -122,6 +132,69 @@ def set_keys(access_key, secret_key):
 def delete_keys():
     """Delete your archive.org API keys."""
     key_utils.delete_credentials()
+
+
+@cli.group(name="history", invoke_without_command=True)
+@click.option("--url", default=None, help="Filter by URL (substring match)")
+@click.option(
+    "--status",
+    default=None,
+    type=click.Choice(["submitted", "success", "error", "failed"]),
+    help="Filter by status",
+)
+@click.option("--since", default=None, help="Show entries since ISO 8601 date")
+@click.option("--limit", default=20, type=int, help="Max rows to return")
+@click.option("--json", "as_json", is_flag=True, help="Output as JSON")
+@click.pass_context
+def history(ctx, url, status, since, limit, as_json):
+    """View archival history.
+
+    Shows past submissions and their outcomes.
+    """
+    if ctx.invoked_subcommand is not None:
+        return
+
+    archive = ctx.obj
+    if archive.history is None:
+        raise click.ClickException("History tracking is disabled (--no-history)")
+
+    rows = archive.history.query(url=url, status=status, since=since, limit=limit)
+
+    if as_json:
+        click.echo(json.dumps(rows, indent=2))
+        return
+
+    if not rows:
+        click.echo("No submissions found.")
+        return
+
+    header = f"{'URL':<40} {'Job ID':<20} {'Status':<10} {'Submitted':<20} {'WM Timestamp':<16}"
+    click.echo(header)
+    click.echo("-" * len(header))
+    for row in rows:
+        u = row["url"]
+        if len(u) > 39:
+            u = u[:38] + "…"
+        jid = row.get("job_id") or ""
+        if len(jid) > 19:
+            jid = jid[:18] + "…"
+        st = row.get("status") or ""
+        sub = (row.get("submitted_at") or "")[:19]
+        ts = row.get("timestamp") or ""
+        click.echo(f"{u:<40} {jid:<20} {st:<10} {sub:<20} {ts:<16}")
+
+
+@history.command(name="clear")
+@click.confirmation_option(prompt="Delete all history?")
+@click.pass_context
+def history_clear(ctx):
+    """Clear all archival history."""
+    archive = ctx.obj
+    if archive.history is None:
+        raise click.ClickException("History tracking is disabled (--no-history)")
+
+    count = archive.history.clear()
+    click.echo(f"Deleted {count} entries.")
 
 
 if __name__ == "__main__":

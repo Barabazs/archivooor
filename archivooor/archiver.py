@@ -1,14 +1,20 @@
+from __future__ import annotations
+
 import concurrent.futures
 import logging
 import re
 import time
 import xml.etree.ElementTree as ET
+from typing import TYPE_CHECKING, Optional
 
 import requests
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 
 from archivooor import exceptions
+
+if TYPE_CHECKING:
+    from archivooor.history import HistoryDB
 
 logger = logging.getLogger(__name__)
 MAX_RETRIES = 3
@@ -45,23 +51,38 @@ class Archiver:
     Used for authenticating and interacting with the archive.org API.
     """
 
-    def __init__(self, s3_access_key, s3_secret_key):
-        """
-        Initialize the object
-        :param s3_access_key: s3_access_key
-        :param s3_secret_key: s3_secret_key
-        """
-
+    def __init__(
+        self,
+        s3_access_key: Optional[str],
+        s3_secret_key: Optional[str],
+        *,
+        db_path: Optional[str] = None,
+        track_history: bool = True,
+    ):
         self.s3_access_key = s3_access_key
         self.s3_secret_key = s3_secret_key
-        self.session = NetworkHandler().session
-        self.executor = NetworkHandler().executor
+        handler = NetworkHandler()
+        self.session = handler.session
+        self.executor = handler.executor
 
         headers = {
             "Accept": "application/json",
             "Authorization": f"LOW {self.s3_access_key}:{self.s3_secret_key}",
         }
         self.session.headers.update(headers)
+
+        self._history: Optional[HistoryDB] = None
+        if track_history:
+            try:
+                from archivooor.history import HistoryDB
+
+                self._history = HistoryDB(db_path=db_path)
+            except Exception:
+                logger.debug("Failed to initialize history DB", exc_info=True)
+
+    @property
+    def history(self) -> Optional[HistoryDB]:
+        return self._history
 
     def save_pages(
         self,
@@ -101,8 +122,15 @@ class Archiver:
                 results.append(future.result())
             except exceptions.ArchivooorException:
                 raise
-            except Exception as exc:
+            except Exception:
                 failures.append(url)
+
+        if self._history:
+            for result in results:
+                job_id = result.get("job_id") if isinstance(result, dict) else None
+                if job_id:
+                    self.executor.submit(self._poll_and_update, job_id)
+
         if failures:
             if _retries >= MAX_RETRIES:
                 logger.warning(
@@ -176,6 +204,7 @@ class Archiver:
                 "status": status,
                 "full_response": data,
             }
+            self._record_history(url, data.get("job_id"), status)
             return formatted_response
 
         elif response.status_code == 401:
@@ -190,6 +219,7 @@ class Archiver:
                 "status_code": response.status_code,
                 "full_response": response.text,
             }
+            self._record_history(url, None, "error")
             return formatted_response
 
     def get_save_status(self, job_id: str, _retries: int = 0):
@@ -245,6 +275,38 @@ class Archiver:
             raise exceptions.ArchivooorException(
                 f"Unexpected error: {response.status_code} - {response.text}"
             )
+
+    def _record_history(self, url: str, job_id: Optional[str], status: str) -> None:
+        if not self._history:
+            return
+        try:
+            self._history.record_submission(url, job_id, status)
+        except Exception:
+            logger.debug("Failed to record history for %s", url, exc_info=True)
+
+    def _poll_and_update(
+        self, job_id: str, max_polls: int = 30, poll_interval: int = 6
+    ) -> None:
+        try:
+            for _ in range(max_polls):
+                data = self.get_save_status(job_id)
+                if isinstance(data, dict) and data.get("status") in (
+                    "success",
+                    "error",
+                ):
+                    if self._history:
+                        self._history.update_completion(
+                            job_id=job_id,
+                            status=data["status"],
+                            original_url=data.get("original_url"),
+                            timestamp=data.get("timestamp"),
+                            duration_sec=data.get("duration_sec"),
+                            status_ext=data.get("status_ext"),
+                        )
+                    return
+                time.sleep(poll_interval)
+        except Exception:
+            logger.debug("Poll failed for job %s", job_id, exc_info=True)
 
 
 class Sitemap:

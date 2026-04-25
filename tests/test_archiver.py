@@ -14,6 +14,7 @@ from archivooor.archiver import (
     NetworkHandler,
 )
 from archivooor.exceptions import ArchivooorException
+from archivooor.history import HistoryDB
 
 SAVE_URL_RE = re.compile(r"https://web\.archive\.org/save/.*")
 STATUS_URL_RE = re.compile(r"https://web\.archive\.org/save/status/.*")
@@ -241,3 +242,62 @@ class TestNetworkHandler:
     def test_executor_max_workers(self):
         nh = NetworkHandler()
         assert nh.executor._max_workers == 5
+
+
+class TestArchiverWithHistory:
+    @pytest.fixture
+    def archiver_with_history(self, tmp_path):
+        db_path = str(tmp_path / "history.db")
+        with responses.RequestsMock() as rsps:
+            a = Archiver(
+                "test_access", "test_secret", db_path=db_path, track_history=True
+            )
+            yield a, rsps
+
+    def test_save_page_records_submission(self, archiver_with_history):
+        a, rsps = archiver_with_history
+        rsps.post(SAVE_URL_RE, json={"job_id": "abc"}, status=200)
+
+        a.save_page("https://example.com")
+
+        rows = a.history.query()
+        assert len(rows) == 1
+        assert rows[0]["url"] == "https://example.com"
+        assert rows[0]["job_id"] == "abc"
+        assert rows[0]["status"] == "submitted"
+
+    def test_save_page_records_error(self, archiver_with_history):
+        a, rsps = archiver_with_history
+        rsps.post(SAVE_URL_RE, body="Bad Request", status=400)
+
+        a.save_page("https://example.com")
+
+        rows = a.history.query()
+        assert len(rows) == 1
+        assert rows[0]["status"] == "error"
+
+    def test_history_disabled(self, tmp_path):
+        with responses.RequestsMock() as rsps:
+            a = Archiver("test_access", "test_secret", track_history=False)
+            assert a.history is None
+
+    def test_save_pages_triggers_poll(self, archiver_with_history):
+        a, rsps = archiver_with_history
+        rsps.post(SAVE_URL_RE, json={"job_id": "poll1"}, status=200)
+        rsps.get(
+            STATUS_URL_RE,
+            json={
+                "status": "success",
+                "original_url": "https://example.com",
+                "timestamp": "20260425120000",
+                "duration_sec": 2.5,
+            },
+        )
+
+        a.save_pages(["https://example.com"])
+        a.executor.shutdown(wait=True)
+
+        rows = a.history.query()
+        assert len(rows) == 1
+        assert rows[0]["status"] == "success"
+        assert rows[0]["timestamp"] == "20260425120000"

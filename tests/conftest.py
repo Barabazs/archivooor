@@ -2,13 +2,21 @@ import pytest
 import responses
 
 from archivooor.archiver import Archiver
+from archivooor.history import HistoryDB
 
 
 @pytest.fixture
 def archiver():
     with responses.RequestsMock() as rsps:
-        a = Archiver("test_access", "test_secret")
+        a = Archiver("test_access", "test_secret", track_history=False)
         yield a, rsps
+
+
+@pytest.fixture
+def history_db(tmp_path):
+    db = HistoryDB(db_path=str(tmp_path / "test_history.db"))
+    yield db
+    db.close()
 
 
 SAMPLE_URLSET_XML = """\
