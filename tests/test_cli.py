@@ -3,6 +3,7 @@ from unittest.mock import MagicMock, patch
 from click.testing import CliRunner
 
 from archivooor.cli import cli
+from archivooor.history import HistoryDB
 
 
 @patch("archivooor.cli.key_utils")
@@ -99,3 +100,110 @@ class TestCli:
 
         assert result.exit_code == 0
         mock_key_utils.delete_credentials.assert_called_once()
+
+    def test_no_history_flag(self, mock_archiver_cls, mock_key_utils):
+        mock_key_utils.get_credentials.return_value = ("ak", "sk")
+        mock_archiver_cls.return_value = MagicMock()
+
+        self._runner().invoke(cli, ["--no-history", "save"])
+
+        mock_archiver_cls.assert_called_once_with(
+            s3_access_key="ak",
+            s3_secret_key="sk",
+            track_history=False,
+        )
+
+
+class TestHistoryCli:
+    def _runner(self):
+        return CliRunner()
+
+    def test_history_table_output(self, tmp_path):
+        db = HistoryDB(db_path=str(tmp_path / "h.db"))
+        db.record_submission("https://example.com", "job1", "submitted")
+
+        mock_arch = MagicMock()
+        mock_arch.history = db
+
+        with (
+            patch("archivooor.cli.key_utils") as mk,
+            patch("archivooor.cli.archiver.Archiver", return_value=mock_arch),
+        ):
+            mk.get_credentials.return_value = ("ak", "sk")
+            result = self._runner().invoke(cli, ["history"])
+
+        assert result.exit_code == 0
+        assert "example.com" in result.output
+        assert "job1" in result.output
+        assert "submitted" in result.output
+        db.close()
+
+    def test_history_json_output(self, tmp_path):
+        db = HistoryDB(db_path=str(tmp_path / "h.db"))
+        db.record_submission("https://example.com", "job1", "submitted")
+
+        mock_arch = MagicMock()
+        mock_arch.history = db
+
+        with (
+            patch("archivooor.cli.key_utils") as mk,
+            patch("archivooor.cli.archiver.Archiver", return_value=mock_arch),
+        ):
+            mk.get_credentials.return_value = ("ak", "sk")
+            result = self._runner().invoke(cli, ["history", "--json"])
+
+        assert result.exit_code == 0
+        import json
+
+        data = json.loads(result.output)
+        assert len(data) == 1
+        assert data[0]["url"] == "https://example.com"
+        db.close()
+
+    def test_history_empty(self, tmp_path):
+        db = HistoryDB(db_path=str(tmp_path / "h.db"))
+        mock_arch = MagicMock()
+        mock_arch.history = db
+
+        with (
+            patch("archivooor.cli.key_utils") as mk,
+            patch("archivooor.cli.archiver.Archiver", return_value=mock_arch),
+        ):
+            mk.get_credentials.return_value = ("ak", "sk")
+            result = self._runner().invoke(cli, ["history"])
+
+        assert result.exit_code == 0
+        assert "No submissions found" in result.output
+        db.close()
+
+    def test_history_clear(self, tmp_path):
+        db = HistoryDB(db_path=str(tmp_path / "h.db"))
+        db.record_submission("https://a.com", "j1", "submitted")
+
+        mock_arch = MagicMock()
+        mock_arch.history = db
+
+        with (
+            patch("archivooor.cli.key_utils") as mk,
+            patch("archivooor.cli.archiver.Archiver", return_value=mock_arch),
+        ):
+            mk.get_credentials.return_value = ("ak", "sk")
+            result = self._runner().invoke(cli, ["history", "clear", "--yes"])
+
+        assert result.exit_code == 0
+        assert "Deleted 1 entries" in result.output
+        db.close()
+
+    def test_history_disabled_error(self):
+        mock_arch = MagicMock()
+        mock_arch.history = None
+
+        with (
+            patch("archivooor.cli.key_utils") as mk,
+            patch("archivooor.cli.archiver.Archiver", return_value=mock_arch),
+        ):
+            mk.get_credentials.return_value = ("ak", "sk")
+            result = self._runner().invoke(cli, ["history"])
+
+        assert result.exit_code != 0
+        assert "disabled" in result.output

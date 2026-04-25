@@ -17,14 +17,15 @@ uv run ruff format        # format only
 uv run mypy archivooor    # type check only
 ```
 
-No unit test suite exists. CI runs CLI integration checks (help output, keyring set/delete) across Python 3.9–3.13 on ubuntu/macos/windows.
+Unit tests live in `tests/` (pytest). CI also runs CLI integration checks (help output, keyring set/delete) across Python 3.9–3.13 on ubuntu/macos/windows.
 
 ## Architecture
 
 All source lives in `archivooor/`:
 
-- **`archiver.py`** — Core logic. `Archiver` class handles save/status API calls with S3 auth headers. `NetworkHandler` wraps requests.Session with urllib3 retry (5 retries, exponential backoff). `Sitemap` parses XML sitemaps into URL lists. `save_pages()` uses ThreadPoolExecutor (5 workers) with recursive retry on failures.
-- **`cli.py`** — Click CLI. Commands: `save`, `job`, `stats`, `keys set`, `keys delete`. Loads credentials via `key_utils` in the group callback.
+- **`archiver.py`** — Core logic. `Archiver` class handles save/status API calls with S3 auth headers, integrates with `HistoryDB` for tracking (on by default, `track_history=False` to disable). `NetworkHandler` wraps requests.Session with urllib3 retry (5 retries, exponential backoff). `Sitemap` parses XML sitemaps into URL lists. `save_pages()` uses ThreadPoolExecutor (5 workers) with recursive retry on failures and fire-and-forget background polling for completion status.
+- **`history.py`** — SQLite-backed history tracking. `HistoryDB` class with per-thread connections (WAL mode), `PRAGMA user_version` schema migrations. Records submissions, polls for completion, supports filtered queries and clearing.
+- **`cli.py`** — Click CLI. Commands: `save`, `job`, `stats`, `history` (with `--url`/`--status`/`--since`/`--limit`/`--json` filters), `history clear`, `keys set`, `keys delete`. Global `--no-history` flag disables tracking. Loads credentials via `key_utils` in the group callback.
 - **`key_utils.py`** — Credential resolution: env vars (`s3_access_key`, `s3_secret_key`) checked first, then system keyring fallback.
 - **`exceptions.py`** — Single `ArchivooorException` base class.
 
