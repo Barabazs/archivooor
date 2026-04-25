@@ -168,7 +168,7 @@ def history(ctx, url, status, since, limit, as_json):
         click.echo("No submissions found.")
         return
 
-    header = f"{'URL':<50} {'Job ID':<36} {'Status':<10} {'Submitted':<20} {'WM Timestamp':<20}"
+    header = f"{'URL':<50} {'Job ID':<46} {'Status':<10} {'Submitted':<20} {'WM Timestamp':<20}"
     click.echo(header)
     click.echo("-" * len(header))
     for row in rows:
@@ -176,8 +176,6 @@ def history(ctx, url, status, since, limit, as_json):
         if len(u) > 49:
             u = u[:48] + "…"
         jid = row.get("job_id") or ""
-        if len(jid) > 35:
-            jid = jid[:34] + "…"
         st = row.get("status") or ""
         sub = (row.get("submitted_at") or "")[:19]
         ts_raw = row.get("timestamp") or ""
@@ -189,7 +187,7 @@ def history(ctx, url, status, since, limit, as_json):
             )
         except (IndexError, TypeError):
             ts = ts_raw
-        click.echo(f"{u:<50} {jid:<36} {st:<10} {sub:<20} {ts:<20}")
+        click.echo(f"{u:<50} {jid:<46} {st:<10} {sub:<20} {ts:<20}")
 
 
 @history.command(name="clear")
